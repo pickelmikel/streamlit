@@ -76,6 +76,10 @@ function Tabs(props: Readonly<TabProps>): ReactElement {
   const widgetId = node.deltaBlock?.tabContainer?.id
   const blockId = node.deltaBlock?.id ?? ""
   const isDynamic = Boolean(widgetId)
+  // Persist the active tab in elementStates only for passive keyed tabs:
+  // blockId is set when key= is provided, and isDynamic means the backend
+  // manages state via on_change="rerun" (widget mode), so we skip persistence
+  // to avoid overriding server-driven state.
   const shouldPersist = Boolean(blockId) && !isDynamic
   const userKey = getKeyFromId(blockId)
 
@@ -91,11 +95,12 @@ function Tabs(props: Readonly<TabProps>): ReactElement {
 
   const [activeTabKey, setActiveTabKey] = useState<React.Key>(() => {
     if (shouldPersist) {
-      const stored = widgetMgr.getElementState(blockId, "activeTabLabel") as
-        | string
-        | undefined
-      if (stored) {
-        const idx = allTabLabels.indexOf(stored)
+      const storedActiveTabLabel = widgetMgr.getElementState(
+        blockId,
+        "activeTabLabel"
+      ) as string | undefined
+      if (storedActiveTabLabel) {
+        const idx = allTabLabels.indexOf(storedActiveTabLabel)
         if (idx >= 0) return idx
       }
     }
@@ -103,10 +108,12 @@ function Tabs(props: Readonly<TabProps>): ReactElement {
   })
   const [activeTabName, setActiveTabName] = useState<string>(() => {
     if (shouldPersist) {
-      const stored = widgetMgr.getElementState(blockId, "activeTabLabel") as
-        | string
-        | undefined
-      if (stored && allTabLabels.includes(stored)) return stored
+      const storedActiveTabLabel = widgetMgr.getElementState(
+        blockId,
+        "activeTabLabel"
+      ) as string | undefined
+      if (storedActiveTabLabel && allTabLabels.includes(storedActiveTabLabel))
+        return storedActiveTabLabel
     }
     const tab = node.children[defaultTabIndex] as BlockNode
     return tab?.deltaBlock?.tab?.label ?? "0"
@@ -171,14 +178,15 @@ function Tabs(props: Readonly<TabProps>): ReactElement {
   // label survives even if the closure captured a stale activeTabName.
   useEffect(() => {
     if (shouldPersist) {
-      const stored = widgetMgr.getElementState(blockId, "activeTabLabel") as
-        | string
-        | undefined
-      if (stored) {
-        const storedIdx = allTabLabels.indexOf(stored)
+      const storedActiveTabLabel = widgetMgr.getElementState(
+        blockId,
+        "activeTabLabel"
+      ) as string | undefined
+      if (storedActiveTabLabel) {
+        const storedIdx = allTabLabels.indexOf(storedActiveTabLabel)
         if (storedIdx !== -1) {
           setActiveTabKey(storedIdx)
-          setActiveTabName(stored)
+          setActiveTabName(storedActiveTabLabel)
           return
         }
       }
@@ -222,14 +230,15 @@ function Tabs(props: Readonly<TabProps>): ReactElement {
     // If tab # changes, match the selected tab label, otherwise default to first tab.
     // When shouldPersist, prefer the stored label over the potentially stale closure value.
     if (shouldPersist) {
-      const stored = widgetMgr.getElementState(blockId, "activeTabLabel") as
-        | string
-        | undefined
-      if (stored) {
-        const storedIdx = allTabLabels.indexOf(stored)
+      const storedActiveTabLabel = widgetMgr.getElementState(
+        blockId,
+        "activeTabLabel"
+      ) as string | undefined
+      if (storedActiveTabLabel) {
+        const storedIdx = allTabLabels.indexOf(storedActiveTabLabel)
         if (storedIdx !== -1) {
           setActiveTabKey(storedIdx)
-          setActiveTabName(stored)
+          setActiveTabName(storedActiveTabLabel)
           return
         }
       }
